@@ -1,4 +1,4 @@
-name: SonarQube Analysis
+name: SonarCloud Analysis
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  sonarqube:
-    name: SonarQube Analysis
+  sonarcloud:
+    name: SonarCloud Analysis
     runs-on: ubuntu-latest
 
     steps:
@@ -20,32 +20,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install SonarScanner
-        run: |
-          sudo apt update
-          sudo apt install -y unzip wget
-          wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-          unzip sonar-scanner.zip
-          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
-          ls -l /opt/sonar-scanner  # Verificar si el directorio se creó correctamente
-          sudo chmod +x /opt/sonar-scanner/bin/sonar-scanner
-          echo "SONAR_SCANNER_HOME=/opt/sonar-scanner" >> $GITHUB_ENV
-          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
-
-      - name: Wait for SonarQube to be available
-        run: |
-          echo "Verificando disponibilidad de SonarQube..."
-          for i in {1..10}; do
-            if curl -s --head http://localhost:9000 | grep "200 OK"; then
-              echo "✅ SonarQube está disponible."
-              exit 0
-            fi
-            echo "⏳ Esperando que SonarQube inicie... Intento $i/10"
-            sleep 10
-          done
-          echo "❌ SonarQube no está disponible. Verifica que esté ejecutándose en http://localhost:9000"
-          exit 1
-
       - name: Cache SonarQube packages
         uses: actions/cache@v3
         with:
@@ -53,14 +27,19 @@ jobs:
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
 
-      - name: Run SonarScanner
+      - name: Run SonarCloud Scanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          sonar-scanner \
-            -Dsonar.projectKey=charla-FISC \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=http://localhost:9000 \
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.qualitygate.wait=true
+          mkdir -p ~/.sonar
+          echo "sonar.organization=tu_organizacion" > ~/.sonar/sonar-project.properties
+          echo "sonar.projectKey=tu_proyecto" >> ~/.sonar/sonar-project.properties
+          echo "sonar.sources=." >> ~/.sonar/sonar-project.properties
+          echo "sonar.host.url=https://sonarcloud.io" >> ~/.sonar/sonar-project.properties
+          echo "sonar.token=${SONAR_TOKEN}" >> ~/.sonar/sonar-project.properties
+
+          # Ejecutar el análisis con sonar-scanner
+          npx sonar-scanner
 
 
 
