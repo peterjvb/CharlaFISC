@@ -1,4 +1,4 @@
-name: SonarCloud Analysis
+name: SonarQube Analysis
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
 
 jobs:
-  sonarcloud:
-    name: SonarCloud Analysis
+  sonarqube:
+    name: SonarQube Analysis
     runs-on: ubuntu-latest
 
     steps:
@@ -20,26 +20,24 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Cache SonarQube packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
+      - name: Install SonarScanner
+        run: |
+          sudo apt update
+          sudo apt install -y unzip wget
+          wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar-scanner.zip
+          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+          sudo ln -s /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner
+          sonar-scanner --version
 
-      - name: Run SonarCloud Scanner
+      - name: Run SonarScanner
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          mkdir -p ~/.sonar
-          echo "sonar.organization=tu_organizacion" > ~/.sonar/sonar-project.properties
-          echo "sonar.projectKey=tu_proyecto" >> ~/.sonar/sonar-project.properties
-          echo "sonar.sources=." >> ~/.sonar/sonar-project.properties
-          echo "sonar.host.url=https://sonarcloud.io" >> ~/.sonar/sonar-project.properties
-          echo "sonar.token=${SONAR_TOKEN}" >> ~/.sonar/sonar-project.properties
-
-          # Ejecutar el análisis con sonar-scanner
-          npx sonar-scanner
-
+          sonar-scanner \
+            -Dsonar.projectKey=Charla-FISC \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=http://localhost:9000 \
+            -Dsonar.login=${SONAR_TOKEN}
 
 
