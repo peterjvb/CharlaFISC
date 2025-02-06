@@ -4,39 +4,58 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  sonar:
+  sonarqube:
     runs-on: ubuntu-latest
+
+    services:
+      sonarqube:
+        image: sonarqube:latest
+        ports:
+          - 9000:9000
+        options: >-
+          --health-cmd="curl -f http://localhost:9000 || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up JDK 11
+      - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
-          java-version: '11'
-          distribution: 'adopt'
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Install SonarScanner
         run: |
-          curl -sSLo sonarscanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          sudo apt update
+          sudo apt install -y unzip wget
+          wget -O sonarscanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
           unzip sonarscanner.zip
-          mv sonar-scanner-5.0.1.3006-linux sonar-scanner
-          echo "$GITHUB_WORKSPACE/sonar-scanner/bin" >> $GITHUB_PATH
+          sudo mkdir -p /opt/sonar-scanner
+          sudo mv sonar-scanner-5.0.1.3006-linux/* /opt/sonar-scanner/
+          sudo chmod +x /opt/sonar-scanner/bin/sonar-scanner
+          echo "SONAR_SCANNER_HOME=/opt/sonar-scanner" >> $GITHUB_ENV
+          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
 
-      - name: Run SonarQube Scanner
+      - name: Wait for SonarQube to be ready
+        run: sleep 60  # Esperar a que SonarQube se inicie completamente
+
+      - name: Run SonarScanner
         run: |
           sonar-scanner \
             -Dsonar.projectKey=charla-fisc \
-            -Dsonar.organization=mi_organizacion \
             -Dsonar.sources=. \
             -Dsonar.host.url=http://localhost:9000 \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
+      - name: Show SonarQube Logs (if failure)
+        if: failure()
+        run: docker logs $(docker ps -q -f ancestor=sonarqube:latest)
 
 
 
