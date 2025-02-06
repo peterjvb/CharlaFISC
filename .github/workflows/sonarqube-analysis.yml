@@ -40,7 +40,7 @@ jobs:
       - name: Run SonarScanner
         run: |
           sonar-scanner \
-            -Dsonar.projectKey=charla_fisc \
+            -Dsonar.projectKey=Charla-FISC \
             -Dsonar.sources=. \
             -Dsonar.host.url=http://localhost:9000 \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
