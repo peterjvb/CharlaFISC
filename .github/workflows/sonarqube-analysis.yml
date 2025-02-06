@@ -20,6 +20,16 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Install SonarScanner
+        run: |
+          sudo apt update
+          sudo apt install -y unzip wget
+          wget -O sonarscanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonarscanner.zip
+          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+          echo "SONAR_SCANNER_HOME=/opt/sonar-scanner" >> $GITHUB_ENV
+          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
+
       - name: Cache SonarQube packages
         uses: actions/cache@v3
         with:
@@ -30,8 +40,9 @@ jobs:
       - name: Run SonarScanner
         run: |
           sonar-scanner \
-            -Dsonar.projectKey=Charla-FISC \
+            -Dsonar.projectKey=charla_fisc \
             -Dsonar.sources=. \
             -Dsonar.host.url=http://localhost:9000 \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
 
